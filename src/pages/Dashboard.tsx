@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { RelatoriosApi, UsuariosApi } from "../services/api";
 import type { RelatorioDia, Usuario } from "../types";
@@ -13,6 +14,7 @@ function primeiroDiaDoMesISO() {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { usuario, logout } = useAuth();
   const [funcionarios, setFuncionarios] = useState<Usuario[]>([]);
   const [relatorio, setRelatorio] = useState<RelatorioDia[]>([]);
@@ -64,12 +66,20 @@ export default function Dashboard() {
           </p>
           <p className="text-white font-semibold">{usuario?.nome}</p>
         </div>
-        <button
-          onClick={logout}
-          className="text-gray-500 hover:text-ctred text-sm font-medium transition-colors"
-        >
-          Sair
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/ponto")}
+            className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
+          >
+            Início
+          </button>
+          <button
+            onClick={logout}
+            className="text-gray-500 hover:text-ctred text-sm font-medium transition-colors"
+          >
+            Sair
+          </button>
+        </div>
       </header>
 
       {/* Filtros */}

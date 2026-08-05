@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Clock from "../components/Clock";
 import RippleButton from "../components/RippleButton";
 import Toast, { type ToastTipo } from "../components/Toast";
@@ -10,6 +11,7 @@ const BLOQUEIO_MS = 5000; // Bloqueia novos cliques por 5 segundos após bater o
 
 export default function Ponto() {
   const { usuario, logout } = useAuth();
+  const navigate = useNavigate();
   const [status, setStatus] = useState<StatusDia | null>(null);
   const [bloqueado, setBloqueado] = useState(false);
   const [carregandoAcao, setCarregandoAcao] = useState(false);
@@ -79,12 +81,26 @@ export default function Ponto() {
           </p>
           <p className="text-white font-semibold">{usuario?.nome}</p>
         </div>
-        <button
-          onClick={logout}
-          className="text-gray-500 hover:text-ctred text-sm font-medium transition-colors"
-        >
-          Sair
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/ponto")}
+            className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
+          >
+            Início
+          </button>
+          <button
+            onClick={() => navigate("/perfil")}
+            className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
+          >
+            Perfil
+          </button>
+          <button
+            onClick={logout}
+            className="text-gray-500 hover:text-ctred text-sm font-medium transition-colors"
+          >
+            Sair
+          </button>
+        </div>
       </header>
 
       {/* Relógio */}

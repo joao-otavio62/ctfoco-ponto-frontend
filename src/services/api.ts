@@ -34,6 +34,11 @@ api.interceptors.response.use(
 );
 
 export const AuthApi = {
+  alterarSenha: async (dados: { senhaAtual: string; novaSenha: string }) => {
+    const response = await api.put("/auth/alterar-senha", dados);
+    return response.data;
+  },
+
   login: async (username: string, password: string) => {
     const { data } = await api.post<LoginResponse>("/auth/login", {
       username,
