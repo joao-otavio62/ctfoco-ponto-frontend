@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 
 /**
  * Menu inferior visível apenas para administradores, permitindo alternar
- * entre "Bater Ponto" e "Relatórios".
+ * entre "Bater Ponto", "Relatórios" e "Administrador".
  */
 export default function BottomNav() {
   const itemClasse = ({ isActive }: { isActive: boolean }) =>
@@ -19,6 +19,10 @@ export default function BottomNav() {
       <NavLink to="/dashboard" className={itemClasse}>
         <span className="text-xl">📊</span>
         Relatórios
+      </NavLink>
+      <NavLink to="/administrador" className={itemClasse}>
+        <span className="text-xl">🛠️</span>
+        Administrador
       </NavLink>
     </nav>
   );

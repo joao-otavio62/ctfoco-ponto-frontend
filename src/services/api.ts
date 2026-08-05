@@ -71,9 +71,26 @@ export const RelatoriosApi = {
 };
 
 export const UsuariosApi = {
+  // Alias para manter compatibilidade com o Dashboard
   listar: async () => {
     const { data } = await api.get<Usuario[]>("/usuarios");
     return data;
+  },
+
+  // Método utilizado no PainelAdmin
+  listarFuncionarios: async () => {
+    const { data } = await api.get<Usuario[]>("/usuarios");
+    return data;
+  },
+
+  criarFuncionario: async (dados: { nome: string; username: string }) => {
+    const { data } = await api.post("/usuarios/criar-funcionario", dados);
+    return data;
+  },
+
+  deletarFuncionario: async (id: number) => {
+    const response = await api.delete(`/usuarios/${id}`);
+    return response.data;
   },
 };
 
