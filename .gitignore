@@ -1,0 +1,50 @@
+########################################
+# CT FOCO Frontend - .gitignore (React/Vite)
+########################################
+
+# ---------- SEGREDOS / CREDENCIAIS (NUNCA versionar) ----------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+*.pem
+*.key
+*.crt
+
+# ---------- DEPENDÊNCIAS ----------
+node_modules/
+.pnp
+.pnp.js
+
+# ---------- BUILD ----------
+dist/
+dist-ssr/
+build/
+.vite/
+*.local
+
+# ---------- LOGS ----------
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+logs/
+
+# ---------- EDITORES / IDEs ----------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.iml
+
+# ---------- TESTES / COBERTURA ----------
+coverage/
+*.tmp
+*.temp
+
+# ---------- SISTEMA OPERACIONAL ----------
+.DS_Store
+Thumbs.db
+desktop.ini
