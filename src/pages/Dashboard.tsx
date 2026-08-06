@@ -23,7 +23,7 @@ function eAtraso(horario: string | null, limite: string): boolean {
   return horaMinuto > limite;
 }
 
-// NOVA FUNÇÃO: Converte horas decimais (ex: 7.99) para formato relógio (ex: 07:59h)
+// Converte horas decimais (ex: 7.99) para formato relógio (ex: 07:59h)
 function formatarHoras(
   decimal: number,
   exibirSinalPositivo: boolean = false,
@@ -62,8 +62,14 @@ export default function Dashboard() {
   const [relatorio, setRelatorio] = useState<RelatorioDia[]>([]);
   const [dataInicio, setDataInicio] = useState(primeiroDiaDoMesISO());
   const [dataFim, setDataFim] = useState(hojeISO());
+
+  // Novo estado para o filtro de status (Padrão: "ativos")
+  const [filtroStatus, setFiltroStatus] = useState<
+    "ativos" | "inativos" | "todos"
+  >("ativos");
   const [funcionarioSelecionado, setFuncionarioSelecionado] =
     useState<string>("");
+
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
@@ -94,16 +100,27 @@ export default function Dashboard() {
     }
   }
 
-  // Cards de resumo
-  const totalHoras = relatorio.reduce((acc, r) => acc + r.horasTrabalhadas, 0);
+  // APLICAÇÃO DO FILTRO NO FRONT-END
+  const relatorioFiltrado = relatorio.filter((r) => {
+    const isAtivo = funcionarios.some((f) => f.id === r.usuarioId);
+    if (filtroStatus === "ativos") return isAtivo;
+    if (filtroStatus === "inativos") return !isAtivo;
+    return true; // Se for "todos"
+  });
 
-  const totalAtrasos = relatorio.filter((r) => {
+  // Cards de resumo agora usam o relatorioFiltrado
+  const totalHoras = relatorioFiltrado.reduce(
+    (acc, r) => acc + r.horasTrabalhadas,
+    0,
+  );
+
+  const totalAtrasos = relatorioFiltrado.filter((r) => {
     const atrasouEntradaManha = eAtraso(r.entrada, "06:05");
     const atrasouRetornoAlmoco = eAtraso(r.fimIntervalo, "14:05");
     return atrasouEntradaManha || atrasouRetornoAlmoco;
   }).length;
 
-  const totalExtras = relatorio.filter((r) => r.saldoHoras > 0).length;
+  const totalExtras = relatorioFiltrado.filter((r) => r.saldoHoras > 0).length;
 
   return (
     <div className="min-h-screen bg-ctblack pb-24">
@@ -155,23 +172,44 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-gray-500 text-xs mb-1">
-            Funcionário
-          </label>
-          <select
-            value={funcionarioSelecionado}
-            onChange={(e) => setFuncionarioSelecionado(e.target.value)}
-            className="w-full bg-ctblack2 border border-ctgray text-white rounded-lg px-3 py-2 text-sm
-              focus:outline-none focus:border-ctred"
-          >
-            <option value="">Todos os funcionários</option>
-            {funcionarios.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nome}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-3">
+          {/* NOVO SELECT: Status (Ativos / Inativos) */}
+          <div>
+            <label className="block text-gray-500 text-xs mb-1">Status</label>
+            <select
+              value={filtroStatus}
+              onChange={(e) =>
+                setFiltroStatus(
+                  e.target.value as "ativos" | "inativos" | "todos",
+                )
+              }
+              className="w-full bg-ctblack2 border border-ctgray text-white rounded-lg px-3 py-2 text-sm
+                focus:outline-none focus:border-ctred"
+            >
+              <option value="ativos">Ativos</option>
+              <option value="inativos">Inativos</option>
+              <option value="todos">Todos</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-gray-500 text-xs mb-1">
+              Funcionário
+            </label>
+            <select
+              value={funcionarioSelecionado}
+              onChange={(e) => setFuncionarioSelecionado(e.target.value)}
+              className="w-full bg-ctblack2 border border-ctgray text-white rounded-lg px-3 py-2 text-sm
+                focus:outline-none focus:border-ctred"
+            >
+              <option value="">Todos os funcionários</option>
+              {funcionarios.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button
@@ -179,7 +217,7 @@ export default function Dashboard() {
           className="w-full bg-ctred hover:bg-ctred2 text-white font-semibold py-2.5 rounded-lg
             transition-colors text-sm"
         >
-          Filtrar
+          Buscar Registros
         </button>
       </div>
 
@@ -203,9 +241,14 @@ export default function Dashboard() {
 
       {/* Listagem */}
       <div className="px-5 mt-6">
-        <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-3">
-          Registros do período
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wide">
+            Registros do período
+          </h2>
+          <span className="text-gray-500 text-xs font-medium">
+            {relatorioFiltrado.length} registro(s)
+          </span>
+        </div>
 
         {carregando && (
           <p className="text-gray-600 text-sm text-center py-6">
@@ -214,14 +257,15 @@ export default function Dashboard() {
         )}
         {erro && <p className="text-ctred2 text-sm text-center py-6">{erro}</p>}
 
-        {!carregando && !erro && relatorio.length === 0 && (
+        {!carregando && !erro && relatorioFiltrado.length === 0 && (
           <p className="text-gray-600 text-sm text-center py-6">
-            Nenhum registro no período.
+            Nenhum registro para os filtros selecionados.
           </p>
         )}
 
         <div className="space-y-3">
-          {relatorio.map((r, idx) => {
+          {/* O map agora é feito em relatorioFiltrado */}
+          {relatorioFiltrado.map((r, idx) => {
             const isAtivo = funcionarios.some((f) => f.id === r.usuarioId);
 
             return (
@@ -279,7 +323,6 @@ export default function Dashboard() {
                     Horas trabalhadas
                   </span>
                   <span className="text-white font-bold text-sm">
-                    {/* Alterado para a nova função de formatação */}
                     {formatarHoras(r.horasTrabalhadas)}
                   </span>
                 </div>
@@ -294,7 +337,6 @@ export default function Dashboard() {
                           : "text-gray-400"
                     }`}
                   >
-                    {/* Alterado para a nova função, passando 'true' para forçar o sinal de '+' quando for positivo */}
                     {formatarHoras(r.saldoHoras, true)}
                   </span>
                 </div>
