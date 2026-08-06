@@ -36,6 +36,19 @@ export default function Perfil() {
       return;
     }
 
+    const possuiMaiuscula = /[A-Z]/.test(novaSenha);
+    const possuiNumero = /[0-9]/.test(novaSenha);
+    const possuiEspecial = /[^A-Za-z0-9]/.test(novaSenha);
+
+    if (!possuiMaiuscula || !possuiNumero || !possuiEspecial) {
+      setToast({
+        mensagem:
+          "A senha deve conter pelo menos uma letra maiúscula, um caractere especial e um número.",
+        tipo: "erro",
+      });
+      return;
+    }
+
     setCarregando(true);
     try {
       const resposta = await AuthApi.alterarSenha({ senhaAtual, novaSenha });
@@ -116,6 +129,10 @@ export default function Perfil() {
           <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-3">
             Segurança
           </h2>
+          <p className="text-red-500/45 text-xs leading-relaxed mb-3">
+            A senha deve conter pelo menos uma letra maiúscula, um caractere
+            especial e um número.
+          </p>
           <form
             onSubmit={handleAlterarSenha}
             className="bg-ctblack2 rounded-xl border border-ctgray p-4 flex flex-col gap-4"
