@@ -13,7 +13,7 @@ function primeiroDiaDoMesISO() {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
 }
 
-// Função auxiliar para verificar atrasos (mantida da sua lógica anterior)
+// Função para verificar atrasos
 function eAtraso(horario: string | null, limite: string): boolean {
   if (!horario) return false;
   const horaMinuto = new Date(horario).toLocaleTimeString("pt-BR", {
@@ -21,6 +21,37 @@ function eAtraso(horario: string | null, limite: string): boolean {
     minute: "2-digit",
   });
   return horaMinuto > limite;
+}
+
+// NOVA FUNÇÃO: Converte horas decimais (ex: 7.99) para formato relógio (ex: 07:59h)
+function formatarHoras(
+  decimal: number,
+  exibirSinalPositivo: boolean = false,
+): string {
+  if (isNaN(decimal) || decimal === 0)
+    return exibirSinalPositivo ? "+00:00h" : "00:00h";
+
+  const isNegativo = decimal < 0;
+  const absDecimal = Math.abs(decimal);
+
+  let horas = Math.floor(absDecimal);
+  let minutos = Math.round((absDecimal - horas) * 60);
+
+  // Se o arredondamento dos minutos chegar a 60, vira uma hora cheia
+  if (minutos === 60) {
+    horas += 1;
+    minutos = 0;
+  }
+
+  const sinal = isNegativo
+    ? "-"
+    : exibirSinalPositivo && decimal > 0
+      ? "+"
+      : "";
+  const horasStr = horas.toString().padStart(2, "0");
+  const minutosStr = minutos.toString().padStart(2, "0");
+
+  return `${sinal}${horasStr}h:${minutosStr}m`;
 }
 
 export default function Dashboard() {
@@ -156,7 +187,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-3 gap-3 px-5 mt-5">
         <div className="bg-ctblack2 border border-ctgray rounded-xl p-3 text-center">
           <p className="text-white font-bold text-lg">
-            {totalHoras.toFixed(1)}h
+            {formatarHoras(totalHoras)}
           </p>
           <p className="text-gray-500 text-[11px] mt-0.5">Horas totais</p>
         </div>
@@ -191,8 +222,6 @@ export default function Dashboard() {
 
         <div className="space-y-3">
           {relatorio.map((r, idx) => {
-            // VERIFICAÇÃO DE STATUS DO FUNCIONÁRIO
-            // Se o ID dele está no array de funcionários (que só traz os ativos do banco), ele é Ativo.
             const isAtivo = funcionarios.some((f) => f.id === r.usuarioId);
 
             return (
@@ -250,7 +279,8 @@ export default function Dashboard() {
                     Horas trabalhadas
                   </span>
                   <span className="text-white font-bold text-sm">
-                    {r.horasTrabalhadas.toFixed(2)}h
+                    {/* Alterado para a nova função de formatação */}
+                    {formatarHoras(r.horasTrabalhadas)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -264,8 +294,8 @@ export default function Dashboard() {
                           : "text-gray-400"
                     }`}
                   >
-                    {r.saldoHoras > 0 ? "+" : ""}
-                    {r.saldoHoras.toFixed(2)}h
+                    {/* Alterado para a nova função, passando 'true' para forçar o sinal de '+' quando for positivo */}
+                    {formatarHoras(r.saldoHoras, true)}
                   </span>
                 </div>
               </div>
