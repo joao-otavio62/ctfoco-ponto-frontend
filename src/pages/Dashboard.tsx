@@ -13,9 +13,20 @@ function primeiroDiaDoMesISO() {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
 }
 
+// Função auxiliar para verificar atrasos (mantida da sua lógica anterior)
+function eAtraso(horario: string | null, limite: string): boolean {
+  if (!horario) return false;
+  const horaMinuto = new Date(horario).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return horaMinuto > limite;
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { usuario, logout } = useAuth();
+
   const [funcionarios, setFuncionarios] = useState<Usuario[]>([]);
   const [relatorio, setRelatorio] = useState<RelatorioDia[]>([]);
   const [dataInicio, setDataInicio] = useState(primeiroDiaDoMesISO());
@@ -52,9 +63,15 @@ export default function Dashboard() {
     }
   }
 
-  // Cards de resumo (RF04)
+  // Cards de resumo
   const totalHoras = relatorio.reduce((acc, r) => acc + r.horasTrabalhadas, 0);
-  const totalAtrasos = relatorio.filter((r) => r.saldoHoras < 0).length;
+
+  const totalAtrasos = relatorio.filter((r) => {
+    const atrasouEntradaManha = eAtraso(r.entrada, "06:05");
+    const atrasouRetornoAlmoco = eAtraso(r.fimIntervalo, "14:05");
+    return atrasouEntradaManha || atrasouRetornoAlmoco;
+  }).length;
+
   const totalExtras = relatorio.filter((r) => r.saldoHoras > 0).length;
 
   return (
@@ -173,63 +190,87 @@ export default function Dashboard() {
         )}
 
         <div className="space-y-3">
-          {relatorio.map((r, idx) => (
-            <div
-              key={`${r.usuarioId}-${r.data}-${idx}`}
-              className="bg-ctblack2 border border-ctgray rounded-xl p-4"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-white font-semibold text-sm">
-                    {r.nomeUsuario}
-                  </p>
-                  <p className="text-gray-500 text-xs">
-                    {new Date(r.data).toLocaleDateString("pt-BR")}
-                  </p>
+          {relatorio.map((r, idx) => {
+            // VERIFICAÇÃO DE STATUS DO FUNCIONÁRIO
+            // Se o ID dele está no array de funcionários (que só traz os ativos do banco), ele é Ativo.
+            const isAtivo = funcionarios.some((f) => f.id === r.usuarioId);
+
+            return (
+              <div
+                key={`${r.usuarioId}-${r.data}-${idx}`}
+                className="bg-ctblack2 border border-ctgray rounded-xl p-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-white font-semibold text-sm">
+                      {r.nomeUsuario}
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      {new Date(r.data).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+
+                  {/* Agrupamento das Badges de Status */}
+                  <div className="flex items-center gap-2">
+                    {/* Badge: Ativo / Inativo */}
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
+                        isAtivo
+                          ? "bg-green-600/20 text-green-500 border-blue-600/20"
+                          : "bg-gray-600/10 text-gray-400 border-gray-600/30"
+                      }`}
+                    >
+                      {isAtivo ? "Ativo" : "Inativo"}
+                    </span>
+
+                    {/* Badge: Status do Ponto */}
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        r.status === "Completo"
+                          ? "bg-blue-600/10 text-blue-500"
+                          : r.status === "Em andamento"
+                            ? "bg-yellow-600/20 text-yellow-500"
+                            : "bg-ctred/20 text-ctred2"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </div>
                 </div>
-                <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    r.status === "Completo"
-                      ? "bg-green-600/20 text-green-500"
-                      : r.status === "Em andamento"
-                        ? "bg-yellow-600/20 text-yellow-500"
-                        : "bg-ctred/20 text-ctred2"
-                  }`}
-                >
-                  {r.status}
-                </span>
-              </div>
 
-              <div className="grid grid-cols-4 gap-2 text-center mb-2">
-                <HorarioMini label="Entrada" valor={r.entrada} />
-                <HorarioMini label="Intervalo" valor={r.inicioIntervalo} />
-                <HorarioMini label="Retorno" valor={r.fimIntervalo} />
-                <HorarioMini label="Saída" valor={r.saida} />
-              </div>
+                <div className="grid grid-cols-4 gap-2 text-center mb-2">
+                  <HorarioMini label="Entrada" valor={r.entrada} />
+                  <HorarioMini label="Intervalo" valor={r.inicioIntervalo} />
+                  <HorarioMini label="Retorno" valor={r.fimIntervalo} />
+                  <HorarioMini label="Saída" valor={r.saida} />
+                </div>
 
-              <div className="flex items-center justify-between border-t border-ctgray pt-2 mt-2">
-                <span className="text-gray-400 text-xs">Horas trabalhadas</span>
-                <span className="text-white font-bold text-sm">
-                  {r.horasTrabalhadas.toFixed(2)}h
-                </span>
+                <div className="flex items-center justify-between border-t border-ctgray pt-2 mt-2">
+                  <span className="text-gray-400 text-xs">
+                    Horas trabalhadas
+                  </span>
+                  <span className="text-white font-bold text-sm">
+                    {r.horasTrabalhadas.toFixed(2)}h
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 text-xs">Saldo</span>
+                  <span
+                    className={`font-bold text-sm ${
+                      r.saldoHoras > 0
+                        ? "text-green-500"
+                        : r.saldoHoras < 0
+                          ? "text-ctred2"
+                          : "text-gray-400"
+                    }`}
+                  >
+                    {r.saldoHoras > 0 ? "+" : ""}
+                    {r.saldoHoras.toFixed(2)}h
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 text-xs">Saldo</span>
-                <span
-                  className={`font-bold text-sm ${
-                    r.saldoHoras > 0
-                      ? "text-green-500"
-                      : r.saldoHoras < 0
-                        ? "text-ctred2"
-                        : "text-gray-400"
-                  }`}
-                >
-                  {r.saldoHoras > 0 ? "+" : ""}
-                  {r.saldoHoras.toFixed(2)}h
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
