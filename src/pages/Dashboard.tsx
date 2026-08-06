@@ -23,7 +23,6 @@ function eAtraso(horario: string | null, limite: string): boolean {
   return horaMinuto > limite;
 }
 
-// Converte horas decimais (ex: 7.99) para formato relógio (ex: 07:59h)
 function formatarHoras(
   decimal: number,
   exibirSinalPositivo: boolean = false,
@@ -63,7 +62,6 @@ export default function Dashboard() {
   const [dataInicio, setDataInicio] = useState(primeiroDiaDoMesISO());
   const [dataFim, setDataFim] = useState(hojeISO());
 
-  // Novo estado para o filtro de status (Padrão: "ativos")
   const [filtroStatus, setFiltroStatus] = useState<
     "ativos" | "inativos" | "todos"
   >("ativos");
@@ -100,7 +98,6 @@ export default function Dashboard() {
     }
   }
 
-  // APLICAÇÃO DO FILTRO NO FRONT-END
   const relatorioFiltrado = relatorio.filter((r) => {
     const isAtivo = funcionarios.some((f) => f.id === r.usuarioId);
     if (filtroStatus === "ativos") return isAtivo;
@@ -108,7 +105,7 @@ export default function Dashboard() {
     return true; // Se for "todos"
   });
 
-  // Cards de resumo agora usam o relatorioFiltrado
+  // Cards de resumo
   const totalHoras = relatorioFiltrado.reduce(
     (acc, r) => acc + r.horasTrabalhadas,
     0,
@@ -264,7 +261,6 @@ export default function Dashboard() {
         )}
 
         <div className="space-y-3">
-          {/* O map agora é feito em relatorioFiltrado */}
           {relatorioFiltrado.map((r, idx) => {
             const isAtivo = funcionarios.some((f) => f.id === r.usuarioId);
 
