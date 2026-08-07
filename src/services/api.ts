@@ -9,7 +9,7 @@ import type {
 
 // Trata a URL para garantir que o sufixo /api esteja presente sem duplicar
 const rawBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-//////
+
 const baseURL = rawBaseUrl.endsWith("/api")
   ? rawBaseUrl
   : `${rawBaseUrl.replace(/\/$/, "")}/api`;
