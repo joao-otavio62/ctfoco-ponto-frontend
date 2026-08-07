@@ -13,14 +13,18 @@ function primeiroDiaDoMesISO() {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
 }
 
-// Função para verificar atrasos
+// Função para verificar atrasos com base em horário específico
 function eAtraso(horario: string | null, limite: string): boolean {
   if (!horario) return false;
-  const horaMinuto = new Date(horario).toLocaleTimeString("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  return horaMinuto > limite;
+
+  const dataHora = new Date(horario);
+  if (Number.isNaN(dataHora.getTime())) return false;
+
+  const [limiteHora, limiteMinuto] = limite.split(":").map(Number);
+  const hora = dataHora.getHours();
+  const minuto = dataHora.getMinutes();
+
+  return hora > limiteHora || (hora === limiteHora && minuto > limiteMinuto);
 }
 
 function formatarHoras(
@@ -112,8 +116,8 @@ export default function Dashboard() {
   );
 
   const totalAtrasos = relatorioFiltrado.filter((r) => {
-    const atrasouEntradaManha = eAtraso(r.entrada, "06:05");
-    const atrasouRetornoAlmoco = eAtraso(r.fimIntervalo, "14:05");
+    const atrasouEntradaManha = eAtraso(r.entrada, "08:16");
+    const atrasouRetornoAlmoco = eAtraso(r.fimIntervalo, "14:16");
     return atrasouEntradaManha || atrasouRetornoAlmoco;
   }).length;
 
