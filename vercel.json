@@ -15,6 +15,6 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://registro-ponto-ct-api.onrender.com"
+    "VITE_API_URL": "https://registro-ponto-ct-api.onrender.com/api"
   }
 }
