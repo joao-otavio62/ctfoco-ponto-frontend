@@ -61,10 +61,51 @@ export const PontoApi = {
     const { data } = await api.get<StatusDia>("/ponto/status");
     return data;
   },
-  // RF02 / RNF - o front-end NÃO envia data/hora, apenas dispara a ação
+  // RF02 / RNF - o front-end envia a localização do usuário no momento do registro
   registrar: async () => {
-    const { data } = await api.post<RegistroPonto>("/ponto/registrar");
-    return data;
+    return new Promise<RegistroPonto>((resolve, reject) => {
+      if (!navigator.geolocation) {
+        return reject(
+          new Error("Geolocalização não é suportada pelo seu navegador."),
+        );
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            const { data } = await api.post<RegistroPonto>("/ponto/registrar", {
+              latitude,
+              longitude,
+            });
+            resolve(data);
+          } catch (error) {
+            reject(error);
+          }
+        },
+        (error) => {
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              reject(
+                new Error(
+                  "Permissão negada. Você precisa autorizar o acesso à localização para bater o ponto.",
+                ),
+              );
+              break;
+            case error.POSITION_UNAVAILABLE:
+              reject(new Error("Sinal de GPS/localização indisponível."));
+              break;
+            case error.TIMEOUT:
+              reject(new Error("Tempo esgotado ao obter a localização."));
+              break;
+            default:
+              reject(new Error("Erro ao capturar a localização."));
+              break;
+          }
+        },
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+    });
   },
 };
 
