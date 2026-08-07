@@ -13,7 +13,7 @@ interface Funcionario {
 
 export default function PainelAdmin() {
   const navigate = useNavigate();
-  const { usuario, logout } = useAuth();
+  const { logout } = useAuth();
 
   const [abaAtiva, setAbaAtiva] = useState<"cadastrar" | "listar">("cadastrar");
 
