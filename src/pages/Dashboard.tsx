@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { RelatoriosApi, UsuariosApi } from "../services/api";
 import type { RelatorioDia, Usuario } from "../types";
@@ -12,14 +13,65 @@ function primeiroDiaDoMesISO() {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
 }
 
+// Função para verificar atrasos com base em horário específico
+function eAtraso(horario: string | null, limite: string): boolean {
+  if (!horario) return false;
+
+  const dataHora = new Date(horario);
+  if (Number.isNaN(dataHora.getTime())) return false;
+
+  const [limiteHora, limiteMinuto] = limite.split(":").map(Number);
+  const hora = dataHora.getHours();
+  const minuto = dataHora.getMinutes();
+
+  return hora > limiteHora || (hora === limiteHora && minuto > limiteMinuto);
+}
+
+function formatarHoras(
+  decimal: number,
+  exibirSinalPositivo: boolean = false,
+): string {
+  if (isNaN(decimal) || decimal === 0)
+    return exibirSinalPositivo ? "+00:00h" : "00:00h";
+
+  const isNegativo = decimal < 0;
+  const absDecimal = Math.abs(decimal);
+
+  let horas = Math.floor(absDecimal);
+  let minutos = Math.round((absDecimal - horas) * 60);
+
+  // Se o arredondamento dos minutos chegar a 60, vira uma hora cheia
+  if (minutos === 60) {
+    horas += 1;
+    minutos = 0;
+  }
+
+  const sinal = isNegativo
+    ? "-"
+    : exibirSinalPositivo && decimal > 0
+      ? "+"
+      : "";
+  const horasStr = horas.toString().padStart(2, "0");
+  const minutosStr = minutos.toString().padStart(2, "0");
+
+  return `${sinal}${horasStr}h:${minutosStr}m`;
+}
+
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { usuario, logout } = useAuth();
+
   const [funcionarios, setFuncionarios] = useState<Usuario[]>([]);
   const [relatorio, setRelatorio] = useState<RelatorioDia[]>([]);
   const [dataInicio, setDataInicio] = useState(primeiroDiaDoMesISO());
   const [dataFim, setDataFim] = useState(hojeISO());
+
+  const [filtroStatus, setFiltroStatus] = useState<
+    "ativos" | "inativos" | "todos"
+  >("ativos");
   const [funcionarioSelecionado, setFuncionarioSelecionado] =
     useState<string>("");
+
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
@@ -50,10 +102,26 @@ export default function Dashboard() {
     }
   }
 
-  // Cards de resumo (RF04)
-  const totalHoras = relatorio.reduce((acc, r) => acc + r.horasTrabalhadas, 0);
-  const totalAtrasos = relatorio.filter((r) => r.saldoHoras < 0).length;
-  const totalExtras = relatorio.filter((r) => r.saldoHoras > 0).length;
+  const relatorioFiltrado = relatorio.filter((r) => {
+    const isAtivo = funcionarios.some((f) => f.id === r.usuarioId);
+    if (filtroStatus === "ativos") return isAtivo;
+    if (filtroStatus === "inativos") return !isAtivo;
+    return true; // Se for "todos"
+  });
+
+  // Cards de resumo
+  const totalHoras = relatorioFiltrado.reduce(
+    (acc, r) => acc + r.horasTrabalhadas,
+    0,
+  );
+
+  const totalAtrasos = relatorioFiltrado.filter((r) => {
+    const atrasouEntradaManha = eAtraso(r.entrada, "08:16");
+    const atrasouRetornoAlmoco = eAtraso(r.fimIntervalo, "14:16");
+    return atrasouEntradaManha || atrasouRetornoAlmoco;
+  }).length;
+
+  const totalExtras = relatorioFiltrado.filter((r) => r.saldoHoras > 0).length;
 
   return (
     <div className="min-h-screen bg-ctblack pb-24">
@@ -64,12 +132,20 @@ export default function Dashboard() {
           </p>
           <p className="text-white font-semibold">{usuario?.nome}</p>
         </div>
-        <button
-          onClick={logout}
-          className="text-gray-500 hover:text-ctred text-sm font-medium transition-colors"
-        >
-          Sair
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/ponto")}
+            className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
+          >
+            Início
+          </button>
+          <button
+            onClick={logout}
+            className="text-gray-500 hover:text-ctred text-sm font-medium transition-colors"
+          >
+            Sair
+          </button>
+        </div>
       </header>
 
       {/* Filtros */}
@@ -97,23 +173,44 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div>
-          <label className="block text-gray-500 text-xs mb-1">
-            Funcionário
-          </label>
-          <select
-            value={funcionarioSelecionado}
-            onChange={(e) => setFuncionarioSelecionado(e.target.value)}
-            className="w-full bg-ctblack2 border border-ctgray text-white rounded-lg px-3 py-2 text-sm
-              focus:outline-none focus:border-ctred"
-          >
-            <option value="">Todos os funcionários</option>
-            {funcionarios.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nome}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-3">
+          {/* NOVO SELECT: Status (Ativos / Inativos) */}
+          <div>
+            <label className="block text-gray-500 text-xs mb-1">Status</label>
+            <select
+              value={filtroStatus}
+              onChange={(e) =>
+                setFiltroStatus(
+                  e.target.value as "ativos" | "inativos" | "todos",
+                )
+              }
+              className="w-full bg-ctblack2 border border-ctgray text-white rounded-lg px-3 py-2 text-sm
+                focus:outline-none focus:border-ctred"
+            >
+              <option value="ativos">Ativos</option>
+              <option value="inativos">Inativos</option>
+              <option value="todos">Todos</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-gray-500 text-xs mb-1">
+              Funcionário
+            </label>
+            <select
+              value={funcionarioSelecionado}
+              onChange={(e) => setFuncionarioSelecionado(e.target.value)}
+              className="w-full bg-ctblack2 border border-ctgray text-white rounded-lg px-3 py-2 text-sm
+                focus:outline-none focus:border-ctred"
+            >
+              <option value="">Todos os funcionários</option>
+              {funcionarios.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <button
@@ -121,7 +218,7 @@ export default function Dashboard() {
           className="w-full bg-ctred hover:bg-ctred2 text-white font-semibold py-2.5 rounded-lg
             transition-colors text-sm"
         >
-          Filtrar
+          Buscar Registros
         </button>
       </div>
 
@@ -129,7 +226,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-3 gap-3 px-5 mt-5">
         <div className="bg-ctblack2 border border-ctgray rounded-xl p-3 text-center">
           <p className="text-white font-bold text-lg">
-            {totalHoras.toFixed(1)}h
+            {formatarHoras(totalHoras)}
           </p>
           <p className="text-gray-500 text-[11px] mt-0.5">Horas totais</p>
         </div>
@@ -145,9 +242,14 @@ export default function Dashboard() {
 
       {/* Listagem */}
       <div className="px-5 mt-6">
-        <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-3">
-          Registros do período
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-gray-400 text-xs font-semibold uppercase tracking-wide">
+            Registros do período
+          </h2>
+          <span className="text-gray-500 text-xs font-medium">
+            {relatorioFiltrado.length} registro(s)
+          </span>
+        </div>
 
         {carregando && (
           <p className="text-gray-600 text-sm text-center py-6">
@@ -156,70 +258,91 @@ export default function Dashboard() {
         )}
         {erro && <p className="text-ctred2 text-sm text-center py-6">{erro}</p>}
 
-        {!carregando && !erro && relatorio.length === 0 && (
+        {!carregando && !erro && relatorioFiltrado.length === 0 && (
           <p className="text-gray-600 text-sm text-center py-6">
-            Nenhum registro no período.
+            Nenhum registro para os filtros selecionados.
           </p>
         )}
 
         <div className="space-y-3">
-          {relatorio.map((r, idx) => (
-            <div
-              key={`${r.usuarioId}-${r.data}-${idx}`}
-              className="bg-ctblack2 border border-ctgray rounded-xl p-4"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-white font-semibold text-sm">
-                    {r.nomeUsuario}
-                  </p>
-                  <p className="text-gray-500 text-xs">
-                    {new Date(r.data).toLocaleDateString("pt-BR")}
-                  </p>
+          {relatorioFiltrado.map((r, idx) => {
+            const isAtivo = funcionarios.some((f) => f.id === r.usuarioId);
+
+            return (
+              <div
+                key={`${r.usuarioId}-${r.data}-${idx}`}
+                className="bg-ctblack2 border border-ctgray rounded-xl p-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-white font-semibold text-sm">
+                      {r.nomeUsuario}
+                    </p>
+                    <p className="text-gray-500 text-xs">
+                      {new Date(r.data).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
+
+                  {/* Agrupamento das Badges de Status */}
+                  <div className="flex items-center gap-2">
+                    {/* Badge: Ativo / Inativo */}
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
+                        isAtivo
+                          ? "bg-green-600/20 text-green-500 border-blue-600/20"
+                          : "bg-gray-600/10 text-gray-400 border-gray-600/30"
+                      }`}
+                    >
+                      {isAtivo ? "Ativo" : "Inativo"}
+                    </span>
+
+                    {/* Badge: Status do Ponto */}
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                        r.status === "Completo"
+                          ? "bg-blue-600/10 text-blue-500"
+                          : r.status === "Em andamento"
+                            ? "bg-yellow-600/20 text-yellow-500"
+                            : "bg-ctred/20 text-ctred2"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </div>
                 </div>
-                <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    r.status === "Completo"
-                      ? "bg-green-600/20 text-green-500"
-                      : r.status === "Em andamento"
-                        ? "bg-yellow-600/20 text-yellow-500"
-                        : "bg-ctred/20 text-ctred2"
-                  }`}
-                >
-                  {r.status}
-                </span>
-              </div>
 
-              <div className="grid grid-cols-4 gap-2 text-center mb-2">
-                <HorarioMini label="Entrada" valor={r.entrada} />
-                <HorarioMini label="Intervalo" valor={r.inicioIntervalo} />
-                <HorarioMini label="Retorno" valor={r.fimIntervalo} />
-                <HorarioMini label="Saída" valor={r.saida} />
-              </div>
+                <div className="grid grid-cols-4 gap-2 text-center mb-2">
+                  <HorarioMini label="Entrada" valor={r.entrada} />
+                  <HorarioMini label="Intervalo" valor={r.inicioIntervalo} />
+                  <HorarioMini label="Retorno" valor={r.fimIntervalo} />
+                  <HorarioMini label="Saída" valor={r.saida} />
+                </div>
 
-              <div className="flex items-center justify-between border-t border-ctgray pt-2 mt-2">
-                <span className="text-gray-400 text-xs">Horas trabalhadas</span>
-                <span className="text-white font-bold text-sm">
-                  {r.horasTrabalhadas.toFixed(2)}h
-                </span>
+                <div className="flex items-center justify-between border-t border-ctgray pt-2 mt-2">
+                  <span className="text-gray-400 text-xs">
+                    Horas trabalhadas
+                  </span>
+                  <span className="text-white font-bold text-sm">
+                    {formatarHoras(r.horasTrabalhadas)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400 text-xs">Saldo</span>
+                  <span
+                    className={`font-bold text-sm ${
+                      r.saldoHoras > 0
+                        ? "text-green-500"
+                        : r.saldoHoras < 0
+                          ? "text-ctred2"
+                          : "text-gray-400"
+                    }`}
+                  >
+                    {formatarHoras(r.saldoHoras, true)}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 text-xs">Saldo</span>
-                <span
-                  className={`font-bold text-sm ${
-                    r.saldoHoras > 0
-                      ? "text-green-500"
-                      : r.saldoHoras < 0
-                        ? "text-ctred2"
-                        : "text-gray-400"
-                  }`}
-                >
-                  {r.saldoHoras > 0 ? "+" : ""}
-                  {r.saldoHoras.toFixed(2)}h
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

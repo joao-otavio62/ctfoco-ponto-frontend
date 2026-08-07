@@ -1,26 +1,26 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [erro, setErro] = useState('')
-  const [carregando, setCarregando] = useState(false)
-  const { login } = useAuth()
-  const navigate = useNavigate()
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setErro('')
-    setCarregando(true)
+    e.preventDefault();
+    setErro("");
+    setCarregando(true);
     try {
-      await login(username, password)
-      navigate('/ponto')
+      await login(username, password);
+      navigate("/ponto");
     } catch {
-      setErro('Usuário ou senha inválidos.')
+      setErro("Usuário ou senha inválidos.");
     } finally {
-      setCarregando(false)
+      setCarregando(false);
     }
   }
 
@@ -72,7 +72,9 @@ export default function Login() {
           </div>
 
           {erro && (
-            <p className="text-ctred2 text-sm text-center font-medium">{erro}</p>
+            <p className="text-ctred2 text-sm text-center font-medium">
+              {erro}
+            </p>
           )}
 
           <button
@@ -81,14 +83,10 @@ export default function Login() {
             className="w-full bg-ctred hover:bg-ctred2 disabled:opacity-60 text-white font-bold
               py-3.5 rounded-xl transition-colors shadow-lg shadow-ctred/20 mt-2"
           >
-            {carregando ? 'Entrando...' : 'Entrar'}
+            {carregando ? "Entrando..." : "Entrar"}
           </button>
         </form>
-
-        <p className="text-center text-gray-600 text-xs mt-8">
-          Credenciais de demonstração: admin / Admin@123
-        </p>
       </div>
     </div>
-  )
+  );
 }

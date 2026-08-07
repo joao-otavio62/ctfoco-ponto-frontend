@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Clock from "../components/Clock";
 import RippleButton from "../components/RippleButton";
 import Toast, { type ToastTipo } from "../components/Toast";
@@ -6,13 +7,15 @@ import { PontoApi } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { ROTULOS_PROXIMO_REGISTRO, type StatusDia } from "../types";
 
-const BLOQUEIO_MS = 5000; // Bloqueia novos cliques por 5 segundos após bater o ponto
+const BLOQUEIO_MS = 600000; // Bloqueia novos cliques por 10 minutos após bater o ponto
 
 export default function Ponto() {
   const { usuario, logout } = useAuth();
+  const navigate = useNavigate();
   const [status, setStatus] = useState<StatusDia | null>(null);
   const [bloqueado, setBloqueado] = useState(false);
   const [carregandoAcao, setCarregandoAcao] = useState(false);
+  const [mostrarConfirmacao, setMostrarConfirmacao] = useState(false);
   const [toast, setToast] = useState<{
     mensagem: string;
     tipo: ToastTipo;
@@ -34,12 +37,15 @@ export default function Ponto() {
     carregarStatus();
   }, [carregarStatus]);
 
-  async function handleRegistrar() {
+  function handleRegistrar() {
     if (bloqueado || carregandoAcao || !status?.proximoRegistro) return;
+    setMostrarConfirmacao(true);
+  }
 
+  async function confirmarRegistrar() {
+    setMostrarConfirmacao(false);
     setCarregandoAcao(true);
     try {
-      // O front-end apenas dispara a ação — o horário é sempre capturado pelo backend (RNF)
       const registro = await PontoApi.registrar();
       const horaFormatada = new Date(
         registro.dataHoraRegistro,
@@ -79,12 +85,26 @@ export default function Ponto() {
           </p>
           <p className="text-white font-semibold">{usuario?.nome}</p>
         </div>
-        <button
-          onClick={logout}
-          className="text-gray-500 hover:text-ctred text-sm font-medium transition-colors"
-        >
-          Sair
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/ponto")}
+            className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
+          >
+            Início
+          </button>
+          <button
+            onClick={() => navigate("/perfil")}
+            className="text-gray-500 hover:text-white text-sm font-medium transition-colors"
+          >
+            Perfil
+          </button>
+          <button
+            onClick={logout}
+            className="text-gray-500 hover:text-ctred text-sm font-medium transition-colors"
+          >
+            Sair
+          </button>
+        </div>
       </header>
 
       {/* Relógio */}
@@ -98,7 +118,7 @@ export default function Ponto() {
           onClick={handleRegistrar}
           disabled={bloqueado || carregandoAcao || !status?.proximoRegistro}
           className="w-56 h-56 rounded-full bg-ctred flex items-center justify-center
-            shadow-2xl shadow-ctred/40 border-4 border-ctred2/30"
+            shadow-2xl shadow-ctred/40 border-4 border-ctred2/30 disabled:opacity-50"
         >
           <span className="text-white font-bold text-lg text-center px-6 leading-tight">
             {carregandoAcao ? "Registrando..." : rotuloBotao}
@@ -111,6 +131,55 @@ export default function Ponto() {
           </p>
         )}
       </div>
+
+      {/* Modal de Confirmação */}
+      {mostrarConfirmacao && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4 animate-fadeIn"
+          onClick={() => setMostrarConfirmacao(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-ctblack2 border border-ctgray p-6 text-left shadow-2xl space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-white text-lg font-bold mb-1">
+                Confirmar registro
+              </h3>
+              <p className="text-gray-400 text-sm">
+                Você está prestes a registrar o seguinte ponto:
+              </p>
+            </div>
+
+            <div className="bg-ctblack border border-ctgray/50 rounded-xl p-3 text-center">
+              <span className="text-ctred font-semibold text-base">
+                {rotuloBotao}
+              </span>
+            </div>
+
+            <p className="text-gray-500 text-xs">
+              O horário será registrado automaticamente pelo servidor.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setMostrarConfirmacao(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarRegistrar}
+                className="bg-ctred hover:bg-ctred2 text-white font-semibold text-sm px-5 py-2 rounded-lg transition-colors shadow-lg shadow-ctred/30"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resumo dos registros de hoje */}
       <div className="px-5">

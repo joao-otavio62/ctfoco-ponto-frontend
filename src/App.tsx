@@ -11,6 +11,8 @@ import BottomNav from "./components/BottomNav";
 import Login from "./pages/Login";
 import Ponto from "./pages/Ponto";
 import Dashboard from "./pages/Dashboard";
+import Perfil from "./pages/Perfil";
+import PainelAdmin from "./pages/Administrador";
 
 function Layout() {
   const { usuario } = useAuth();
@@ -37,6 +39,24 @@ function Layout() {
           element={
             <ProtectedRoute rolesPermitidas={["Admin"]}>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/administrador"
+          element={
+            <ProtectedRoute rolesPermitidas={["Admin"]}>
+              <PainelAdmin />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/perfil"
+          element={
+            <ProtectedRoute>
+              <Perfil />
             </ProtectedRoute>
           }
         />
