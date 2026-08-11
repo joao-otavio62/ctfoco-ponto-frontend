@@ -5,13 +5,14 @@ import type {
   RelatorioDia,
   StatusDia,
   Usuario,
+  Cargo,
 } from "../types";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
 });
 
-// Anexa o token JWT em toda requisição autenticada
+// Interceptors mantidos intactos...
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("ctfoco_token");
   if (token) {
@@ -20,7 +21,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Se o token expirar/for inválido, desloga automaticamente
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -49,12 +49,10 @@ export const AuthApi = {
 };
 
 export const PontoApi = {
-  // RF03 - status do dia para saber qual o próximo botão exibir
   obterStatus: async () => {
     const { data } = await api.get<StatusDia>("/ponto/status");
     return data;
   },
-  // RF02 / RNF - o front-end NÃO envia data/hora, apenas dispara a ação
   registrar: async () => {
     const { data } = await api.post<RegistroPonto>("/ponto/registrar");
     return data;
@@ -71,19 +69,22 @@ export const RelatoriosApi = {
 };
 
 export const UsuariosApi = {
-  // Alias para manter compatibilidade com o Dashboard
   listar: async () => {
     const { data } = await api.get<Usuario[]>("/usuarios");
     return data;
   },
 
-  // Método utilizado no PainelAdmin
   listarFuncionarios: async () => {
     const { data } = await api.get<Usuario[]>("/usuarios");
     return data;
   },
 
-  criarFuncionario: async (dados: { nome: string; username: string }) => {
+  // Aceita o campo cargo na criação
+  criarFuncionario: async (dados: {
+    nome: string;
+    username: string;
+    cargo: Cargo;
+  }) => {
     const { data } = await api.post("/usuarios/criar-funcionario", dados);
     return data;
   },

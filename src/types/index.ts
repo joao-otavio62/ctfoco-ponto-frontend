@@ -7,11 +7,26 @@ export enum TipoRegistro {
   Saida = 4,
 }
 
+export enum Cargo {
+  Recepcionista = 1,
+  EstagiarioManha = 2,
+  EstagiarioTarde = 3,
+  EstagiarioNoite = 4,
+}
+
+export const CargoDescricao: Record<Cargo, string> = {
+  [Cargo.Recepcionista]: "Recepcionista (8h)",
+  [Cargo.EstagiarioManha]: "Estagiário Manhã (06:00 às 11:00)",
+  [Cargo.EstagiarioTarde]: "Estagiário Tarde (14:00 às 17:30)",
+  [Cargo.EstagiarioNoite]: "Estagiário Noite (17:30 às 21:00)",
+};
+
 export interface Usuario {
   id: number;
   nome: string;
   username: string;
   role: Role;
+  Cargo: Cargo;
 }
 
 export interface LoginResponse {
