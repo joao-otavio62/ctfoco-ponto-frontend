@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import Toast, { type ToastTipo } from "../components/Toast";
 import { useAuth } from "../context/AuthContext";
 import { UsuariosApi } from "../services/api";
+import { Cargo, CargoDescricao } from "../types";
 
 interface Funcionario {
   id: number;
   nome: string;
   username: string;
   role: string;
+  cargo: Cargo;
 }
 
 export default function PainelAdmin() {
@@ -20,6 +22,7 @@ export default function PainelAdmin() {
   // Estados do Formulário
   const [nome, setNome] = useState("");
   const [username, setUsername] = useState("");
+  const [cargo, setCargo] = useState<Cargo>(Cargo.Recepcionista);
 
   // Estados da Listagem
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
@@ -48,21 +51,23 @@ export default function PainelAdmin() {
   async function carregarFuncionarios() {
     setCarregandoLista(true);
     try {
-      console.log("Chamando UsuariosApi.listarFuncionarios()...");
       const data = await UsuariosApi.listarFuncionarios();
-      console.log("Funcionários recebidos:", data);
-      setFuncionarios(data);
+      setFuncionarios(
+        data.map((usuario) => ({
+          id: usuario.id,
+          nome: usuario.nome,
+          username: usuario.username,
+          role: usuario.role,
+          cargo: usuario.Cargo,
+        })),
+      );
     } catch (err: any) {
-      console.error("Erro ao carregar funcionários:", err);
       const mensagem =
         err?.response?.data?.mensagem ||
         err?.response?.data ||
         "Erro ao carregar a lista de funcionários.";
 
-      setToast({
-        mensagem,
-        tipo: "erro",
-      });
+      setToast({ mensagem, tipo: "erro" });
     } finally {
       setCarregandoLista(false);
     }
@@ -82,7 +87,11 @@ export default function PainelAdmin() {
     setCarregando(true);
 
     try {
-      const resposta = await UsuariosApi.criarFuncionario({ nome, username });
+      const resposta = await UsuariosApi.criarFuncionario({
+        nome,
+        username,
+        cargo,
+      });
 
       setToast({
         mensagem: resposta.mensagem || "Funcionário criado com sucesso!",
@@ -91,6 +100,7 @@ export default function PainelAdmin() {
 
       setNome("");
       setUsername("");
+      setCargo(Cargo.Recepcionista);
     } catch (err: any) {
       const mensagem =
         err?.response?.data?.mensagem ||
@@ -121,7 +131,6 @@ export default function PainelAdmin() {
         tipo: "sucesso",
       });
 
-      // Atualiza a lista localmente
       setFuncionarios((prev) => prev.filter((f) => f.id !== id));
     } catch (err: any) {
       const mensagem =
@@ -225,6 +234,30 @@ export default function PainelAdmin() {
                 />
               </div>
 
+              <div className="flex flex-col gap-1">
+                <label className="text-gray-400 text-xs font-medium">
+                  Cargo e Turno de Trabalho
+                </label>
+                <select
+                  value={cargo}
+                  onChange={(e) => setCargo(Number(e.target.value) as Cargo)}
+                  className="bg-ctblack border border-ctgray rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-ctred transition-colors"
+                >
+                  <option value={Cargo.Recepcionista}>
+                    {CargoDescricao[Cargo.Recepcionista]}
+                  </option>
+                  <option value={Cargo.EstagiarioManha}>
+                    {CargoDescricao[Cargo.EstagiarioManha]}
+                  </option>
+                  <option value={Cargo.EstagiarioTarde}>
+                    {CargoDescricao[Cargo.EstagiarioTarde]}
+                  </option>
+                  <option value={Cargo.EstagiarioNoite}>
+                    {CargoDescricao[Cargo.EstagiarioNoite]}
+                  </option>
+                </select>
+              </div>
+
               <div className="bg-ctblack border-l-2 border-ctgray p-3 rounded-r-lg mt-2">
                 <p className="text-gray-400 text-xs leading-relaxed">
                   A senha inicial será configurada automaticamente como: <br />
@@ -262,10 +295,15 @@ export default function PainelAdmin() {
                 funcionarios.map((func, index) => (
                   <div key={func.id} className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white text-sm font-medium">
-                          {func.nome}
-                        </p>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-white text-sm font-medium">
+                            {func.nome}
+                          </p>
+                          <span className="text-[10px] bg-ctblack border border-ctgray text-gray-300 px-2 py-0.5 rounded-full font-medium">
+                            {CargoDescricao[func.cargo] || "Sem Cargo"}
+                          </span>
+                        </div>
                         <p className="text-gray-500 text-xs">
                           @{func.username}
                         </p>
