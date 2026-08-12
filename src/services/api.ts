@@ -110,7 +110,11 @@ export const PontoApi = {
 export const RelatoriosApi = {
   obter: async (dataInicio: string, dataFim: string, usuarioId?: number) => {
     const { data } = await api.get<RelatorioDia[]>("/relatorios", {
-      params: { dataInicio, dataFim, usuarioId },
+      params: {
+        dataInicio,
+        dataFim,
+        usuarioId,
+      },
     });
     return data;
   },
